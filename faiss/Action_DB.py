@@ -1,3 +1,6 @@
+from langchain.schema import Document
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
 actions = {
     "crawl":  {"movement": "low_move", "interaction": "none", "layout": "prone"},
     "jump":   {"movement": "sudden_move", "interaction": "none", "layout": "airborne"},
@@ -54,3 +57,29 @@ ACTION_DB = {
     }
     for action, meta in actions.items()
 }
+action_documents = []
+
+for action, data in ACTION_DB.items():
+    description = (
+        f"{action} is an action involving {data['movement']} movement, "
+        f"interaction type '{data['interaction']}', "
+        f"and layout '{data['layout']}'."
+    )
+
+    action_documents.append(
+        Document(
+            page_content=description,
+            metadata={
+                "action": action,
+                "movement": data["movement"],
+                "interaction": data["interaction"],
+                "layout": data["layout"],
+                "animate_fn": data["animate_fn"]
+            }
+        )
+    )
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+faiss_db = FAISS.from_documents(action_documents, embeddings)
+faiss_db.save_local("faiss_indexes/actions")

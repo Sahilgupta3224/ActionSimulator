@@ -1,47 +1,38 @@
-actions = {
-    "crawl":  {"movement": "low_move", "interaction": "none", "layout": "prone"},
-    "jump":   {"movement": "sudden_move", "interaction": "none", "layout": "airborne"},
-    "leap":   {"movement": "sudden_move", "interaction": "none", "layout": "airborne"},
-    "swim":   {"movement": "aquatic", "interaction": "none","layout":"none"},
-    "hover":  {"movement": "aerial_stationary", "interaction": "none", "layout": "airborne"},
-    "slide":  {"movement": "low_move", "interaction": "none","layout":"none"},
-    "roll":   {"movement": "continuous_rotation", "interaction": "none", "layout": "prone"},
-    "hug":    {"movement": "stationary", "interaction": "embrace", "layout": "close_proximity"},
-    "push":   {"movement": "stationary", "interaction": "apply_force", "layout": "close_proximity"},
-    "pull":   {"movement": "stationary", "interaction": "apply_force", "layout": "close_proximity"},
-    "read":   {"movement": "stationary", "interaction": "focus_visual","layout":"none"},
-    "write":  {"movement": "stationary", "interaction": "manipulate","layout":"none"},
-    "eat":    {"movement": "stationary", "interaction": "consume","layout":"none"},
-    "drink":  {"movement": "stationary", "interaction": "consume","layout":"none"},
-    "throw":  {"movement": "sudden_move", "interaction": "launch_object","layout":"none"},
-    "catch":  {"movement": "stationary", "interaction": "receive_object","layout":"none"},
-    "sleep":  {"movement": "stationary", "interaction": "none", "layout": "lying"},
-    "drive":  {"movement": "guided_move", "interaction": "operate_machine", "layout": "seated"},
-    "climb":  {"movement": "vertical_move", "interaction": "grip","layout":"none"},
-    "open":   {"movement": "stationary", "interaction": "change_state","layout":"none"},
-    "close":  {"movement": "stationary", "interaction": "change_state","layout":"none"},
-    "dig":    {"movement": "stationary", "interaction": "excavate","layout":"none"},
-    "lift":   {"movement": "stationary", "interaction": "vertical_force","layout":"none"},
-    "walk":   {"movement": "move", "interaction": "none","layout":"none"},
-    "run":    {"movement": "fast_move", "interaction": "none","layout":"none"},
-    "sit":    {"movement": "stationary", "interaction": "none", "layout": "seated"},
-    "stand":  {"movement": "stationary", "interaction": "none","layout":"none"},
-    "wait":   {"movement": "stationary", "interaction": "none","layout":"none"},
-    "talk":   {"movement": "stationary", "interaction": "talk","layout":"none"},
-    "look":   {"movement": "stationary", "interaction": "look_at","layout":"none"},
-    "play":   {"movement": "move", "interaction": "play_with","layout":"none"},
-    "carry":  {"movement": "move", "interaction": "carry","layout":"none"},
-    "fly":    {"movement": "aerial", "interaction": "none","layout":"none"},
-    "laugh":  {"movement": "stationary", "interaction": "vocalize_joy","layout":"none"},
-    "cry":    {"movement": "stationary", "interaction": "vocalize_sorrow","layout":"none"},
-    "sigh":   {"movement": "stationary", "interaction": "vocalize_relief","layout":"none"},
-    "frown":  {"movement": "stationary", "interaction": "none","layout":"none"},
-    "shout":  {"movement": "stationary", "interaction": "vocalize_loud","layout":"none"},
-    "gasp":   {"movement": "stationary", "interaction": "vocalize_surprise","layout":"none"},
-    "heat":   {"movement": "stationary", "interaction": "apply_thermal","layout":"none"},
-    "cool":   {"movement": "stationary", "interaction": "remove_thermal","layout":"none"},
-    "ignite": {"movement": "stationary", "interaction": "initiate_fire","layout":"none"},
-    "break":  {"movement": "stationary", "interaction": "structural_force","layout":"none"},
-    "mend":   {"movement": "stationary", "interaction": "structural_repair","layout":"none"},
-    "clean":  {"movement": "stationary", "interaction": "remove_dirt","layout":"none"}
+from langchain.schema import Document
+from langchain.vectorstores import FAISS
+from langchain.embeddings import HuggingFaceEmbeddings
+MOVEMENT_DB = {
+    "move": {"speed": "normal", "axis": "horizontal"},
+    "fast_move": {"speed": "fast", "axis": "horizontal"},
+    "low_move": {"speed": "slow", "axis": "ground"},
+    "sudden_move": {"speed": "burst", "axis": "any"},
+    "vertical_move": {"speed": "normal", "axis": "vertical"},
+    "aerial": {"speed": "normal", "axis": "air"},
+    "aquatic": {"speed": "fluid", "axis": "water"},
+    "stationary": {"speed": "none", "axis": "none"},
+    "guided_move": {"speed": "controlled", "axis": "path"}
 }
+embeddings = HuggingFaceEmbeddings(
+    model_name="sentence-transformers/all-MiniLM-L6-v2"
+)
+movement_documents = []
+
+for movement, data in MOVEMENT_DB.items():
+    description = (
+        f"{movement} movement has {data['speed']} speed "
+        f"along the {data['axis']} axis."
+    )
+
+    movement_documents.append(
+        Document(
+            page_content=description,
+            metadata={
+                "movement": movement,
+                "speed": data["speed"],
+                "axis": data["axis"]
+            }
+        )
+    )
+
+movement_faiss = FAISS.from_documents(movement_documents, embeddings)
+movement_faiss.save_local("faiss_indexes/movements")
